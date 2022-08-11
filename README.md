@@ -1,4 +1,4 @@
-# BRO-gui
+# BRO-GUI
 A Bayesian Reaction Optimization(BRO) GUI Interface
 
 ## Requirements

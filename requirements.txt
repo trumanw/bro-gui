@@ -7,3 +7,4 @@ tqdm==4.64.0
 torch==1.12.1
 gpytorch==1.8.1
 botorch==0.6.5
+Pillow==9.2.0
