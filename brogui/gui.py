@@ -29,8 +29,8 @@ class MultiApp:
 
 app = MultiApp()
 
-from pages.dashboard_page import dashboard_page
-app.add_app("Dashboard", dashboard_page)
+# from pages.dashboard_page import dashboard_page
+# app.add_app("Dashboard", dashboard_page)
 
 from pages.experiment_page import experiment_page
 app.add_app("Experiment", experiment_page)
