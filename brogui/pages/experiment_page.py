@@ -1,7 +1,4 @@
-from inspect import Parameter
-from sqlite3 import paramstyle
 import streamlit as st
-from PIL import Image
 import pandas as pd
 
 from nextorch import plotting, bo, doe
@@ -58,6 +55,18 @@ def experiment_page():
 
     st.sidebar.markdown("## Generate Initial Samples")
     init_sampling_btn = st.sidebar.button('Sample')
+    if init_sampling_btn:
+        X_init_lhc = doe.latin_hypercube(n_dim = X_dims, n_points = int(n_initial), seed= 1)
+        # Compare the 3 sampling plans
+        params = [VariableFactory(i) for i in st.session_state.X_initial_plot]
+        X_ranges = [i.parameter_range for i in params]
+
+        from utils.plotting import sampling_3d
+        sampling_3d([X_init_lhc],
+                    X_names = st.session_state.X_initial_plot,
+                    X_ranges = X_ranges,
+                    design_names = ['LHC'],
+                    )
 
 def render():
     render_exp_info(
