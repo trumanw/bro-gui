@@ -4,26 +4,27 @@ import streamlit as st
 from PIL import Image
 import pandas as pd
 
+from nextorch import plotting, bo, doe
+
 from utils.variables import AF_OPTIONS, DOE_OPTIONS
 from utils.variables import OPTION_PARAMS, VariableFactory
 
 def experiment_page():
-
-    # left_col, right_col = st.columns(2)
-
+    
     st.markdown("# Experiment")
-
-    st.sidebar.markdown("## Step 1. Create a new experiment")
+    
+    st.sidebar.markdown("## Setup Experiment")
+    
     # exp_id = 
-    exp_name = st.sidebar.text_input('Experiment Name')
+    exp_name = st.sidebar.text_input('Experiment Name', value="demo") #FIXME: generate a random unique expid
     exp_desc = st.sidebar.text_input('Goal Description', value='MOO')
 
-    Y_vector = st.multiselect(
+    Y_vector = st.sidebar.multiselect(
         'Goal Dimensions',
         ['STY(space-time-yield)', 'E-Factor'],
         ['STY(space-time-yield)', 'E-Factor'])
     Y_dims = len(Y_vector)
-    X_vector = st.multiselect(
+    X_vector = st.sidebar.multiselect(
         'Input Dimensions', OPTION_PARAMS, OPTION_PARAMS
     )
     X_dims = len(X_vector)
@@ -32,17 +33,65 @@ def experiment_page():
         'Acqucision Function', (AF_OPTIONS),
         index=1
     )
+
     initial_sampling_select = st.sidebar.selectbox(
         'Initial Sampling', (DOE_OPTIONS), 
         index=1
     )
-    
-    # Init experiment description table
-    key_items = ['Exp Name', 'Goal', 'Output(Y) dimension', 'Input(X) dimension', 'Acqucision function', 'Initial sampling']
-    descriptions = [exp_name, exp_desc, str(Y_dims), str(X_dims), acqucision_function_select, initial_sampling_select]
+    n_initial = st.sidebar.text_input('Initial Sampling Num', value='10')
+    X_initial_plot = st.sidebar.multiselect(
+        'Initial Plotting Dimensions', OPTION_PARAMS, OPTION_PARAMS
+    )
+
+    # cache exp info into session states
+    st.session_state.exp_name = exp_name
+    st.session_state.exp_desc = exp_desc
+    st.session_state.Y_vector = Y_vector
+    st.session_state.X_vector = X_vector
+    st.session_state.Y_dims = Y_dims
+    st.session_state.X_dims = X_dims
+    st.session_state.acqucision_function_select = acqucision_function_select
+    st.session_state.initial_sampling_select = initial_sampling_select
+    st.session_state.n_initial = n_initial
+    st.session_state.X_initial_plot = X_initial_plot
+    render()
+
+    st.sidebar.markdown("## Generate Initial Samples")
+    init_sampling_btn = st.sidebar.button('Sample')
+
+def render():
+    render_exp_info(
+        st.session_state.exp_name, 
+        st.session_state.exp_desc, 
+        str(st.session_state.Y_dims), 
+        str(st.session_state.X_dims), 
+        st.session_state.acqucision_function_select, 
+        st.session_state.initial_sampling_select, 
+        st.session_state.n_initial)
+    render_params_info(st.session_state.X_vector)
+
+def render_exp_info(
+    exp_name, exp_desc, 
+    Y_dims, X_dims, 
+    acqucision_function_select, 
+    initial_sampling_select, 
+    n_initial):
+
+    key_items = [
+        'Exp Name', 'Goal', 'Output(Y) dimension', 
+        'Input(X) dimension', 'Acqucision function', 
+        'Initial sampling function', 'Initial sampling num']
+    descriptions = [
+        exp_name, exp_desc, 
+        str(Y_dims), str(X_dims), 
+        acqucision_function_select, 
+        initial_sampling_select, n_initial]
     exp_desc_tb = pd.DataFrame({'Key Items': key_items, "Description": descriptions})
 
-    # Init parameters description table
+    st.markdown('### Experiment Info')
+    st.table(exp_desc_tb)
+
+def render_params_info(X_vector):
     params = [VariableFactory(i) for i in X_vector]
     parameter_names = [f"{i.symbol} - {i.parameter}({i.unit})" for i in params]
     parameter_types = [f"{i.parameter_type}" for i in params]
@@ -52,35 +101,5 @@ def experiment_page():
         'Type': parameter_types, 
         'Values': parameter_values})
 
-    exp_create_btn = st.sidebar.button('Create')
-    exp_create_valid = True
-    if exp_create_btn:
-        # validation
-        if '' == exp_name:
-            exp_create_valid = False
-            st.sidebar.error('Invalid experiment name.')
-
-        if 0 == Y_dims:
-            exp_create_valid = False
-            st.sidebar.error('Goal Dimensions should be integer not {Y_dims}.')
-        
-        if 0 == X_dims:
-            exp_create_valid = False
-            st.sidebar.error('Input Dimensions should be integer not {X_dims}.')
-
-        if exp_create_valid:
-            st.markdown("## Create a new experiment:")
-            st.table(exp_desc_tb)
-            st.markdown("## Parameters and scopes:")
-            st.table(param_desc_tb)
-
-    st.sidebar.markdown("---")
-
-    st.sidebar.markdown("## Step 2. Setup parameters")
-    
-    st.sidebar.markdown("---")
-
-    st.sidebar.markdown("## Step 3. ")
-    st.sidebar.markdown("---")
-
-    
+    st.markdown('### Parameter Info')
+    st.table(param_desc_tb)
