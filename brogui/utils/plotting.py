@@ -137,8 +137,7 @@ def sampling_3d(
     ax.set_zticks(set_axis_values(zlim_plot, n_tick_sections))
     ax.set_zticklabels(set_axis_values(X_ranges[index_2], n_tick_sections))
     ax.view_init(30, 45)
-    # plt.show()
-    st.pyplot(fig)
+    # st.pyplot(fig)
     
     # save the figure as png
     if save_fig:
@@ -147,3 +146,5 @@ def sampling_3d(
         if not os.path.exists(save_path): os.makedirs(save_path)
         fig.savefig(os.path.join(save_path, file_name + '.' + figformat), 
                     bbox_inches="tight", transparent=backgroundtransparency)
+    
+    return fig
