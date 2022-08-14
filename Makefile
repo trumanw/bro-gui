@@ -7,3 +7,5 @@ install:
 	python setup.py install
 reinstall: clean
 	python setup.py install
+run: clean
+	streamlit run brogui/gui.py
