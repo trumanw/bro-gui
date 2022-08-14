@@ -2,11 +2,12 @@ from re import A
 import streamlit as st
 import pandas as pd
 import numpy as np
-from nextorch import bo, doe
+from nextorch import bo, doe, io
 from st_aggrid import AgGrid
 
 from utils.variables import AF_OPTIONS, DOE_OPTIONS
 from utils.variables import OPTION_PARAMS, VariableFactory
+from utils.plotting import pareto_front
 
 def experiment_page():
     st.markdown("# Human-in-the-loop(HITL) Experiment")
@@ -96,17 +97,69 @@ def experiment_page():
 def render():
     render_exp_info()
     render_params_info()
-    render_initial_params()
+    render_start_widget()
+    render_explore_widget()
     render_trials_table()
+    render_pareto_front()
 
 def render_trials_table():
     if 'trials' in st.session_state:
         st.markdown('### Interative Trials Table')
         st.session_state.ag_grid = AgGrid(st.session_state.trials, editable=True)
 
-def render_initial_params():
+def render_pareto_front():
+    st.sidebar.markdown('## Step 4. Visualize Pareto Front')
+
+    bo_plot_btn = st.sidebar.button('Plot')
+    if bo_plot_btn:
+        if 'exp' in st.session_state and hasattr(st.session_state.exp, 'Y_real'):
+            st.markdown('### Visualize Paretor Front')
+            Y_real_opts, X_real_opts = st.session_state.exp.get_optim()
+            Y_col_names = st.session_state.Y_vector
+
+            col_1, col_2 = st.columns([1, 1])
+            only_pareto_fig = pareto_front(Y_real_opts[:, 0], Y_real_opts[:, 1], Y_names=Y_col_names, fill=False)
+            all_samples_fig = pareto_front(st.session_state.exp.Y_real[:, 0], st.session_state.exp.Y_real[:, 1], Y_names=Y_col_names, fill=False)
+            col_1.write('Only pareto front')
+            col_1.pyplot(only_pareto_fig)
+            col_2.write('All sampled points')
+            col_2.pyplot(all_samples_fig)
+
+def render_explore_widget():
+    st.sidebar.markdown('## Step 3. Human-in-the-loop')
+
+    params = [VariableFactory(i) for i in st.session_state.X_vector]
+    X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
+    Y_col_names = st.session_state.Y_vector
+
+    bo_next_btn = st.sidebar.button('Explore')
+    if bo_next_btn:
+        st.session_state.trials = st.session_state.ag_grid['data']
+
+        # get incremental X_real and Y_real
+        X_initial_input = st.session_state.trials[X_col_names].to_numpy()
+        Y_initial_input = st.session_state.trials[
+            st.session_state.trials['Trial Index'] == (st.session_state.trial_index)][Y_col_names].to_numpy()
+
+        # run trial to update surrogate model
+        st.session_state.exp.run_trial(st.session_state.last_X_new, st.session_state.last_X_new_real, Y_initial_input)
+
+        # generate the first batch 
+        trial_no = st.session_state.trial_index + 1
+        X_new, X_new_real, acq_func = st.session_state.exp.generate_next_point(
+                n_candidates=st.session_state.n_batch)
+        for row in X_new_real:
+            row_dict = dict(zip(['Trial Index', 'Trial Type'] + X_col_names, [trial_no, "BO"] + row.tolist()))
+            row_df = pd.DataFrame([row_dict])
+            st.session_state.trials = pd.concat([st.session_state.trials, row_df])
+
+        # update last X_new, X_new_real, trial_index
+        st.session_state.last_X_new = X_new
+        st.session_state.last_X_new_real = X_new_real
+        st.session_state.trial_index = trial_no
+
+def render_start_widget():
     st.sidebar.markdown('## Step 2. Initialize Experiment')
-    bo_start_btn = st.sidebar.button('Start')
 
     params = [VariableFactory(i) for i in st.session_state.X_vector]
     X_ranges = [i.parameter_range for i in params]
@@ -114,6 +167,7 @@ def render_initial_params():
     X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
     Y_col_names = st.session_state.Y_vector
 
+    bo_start_btn = st.sidebar.button('Start')
     if bo_start_btn:
         st.session_state.trials = st.session_state.ag_grid['data']
 
@@ -144,32 +198,32 @@ def render_initial_params():
         st.session_state.last_X_new_real = X_new_real
         st.session_state.trial_index = trial_no
 
-    st.sidebar.markdown('## Step 3. Human-in-the-loop')
-    bo_next_btn = st.sidebar.button('Explore')
-    if bo_next_btn:
-        st.session_state.trials = st.session_state.ag_grid['data']
+    # st.sidebar.markdown('## Step 3. Human-in-the-loop')
+    # bo_next_btn = st.sidebar.button('Explore')
+    # if bo_next_btn:
+    #     st.session_state.trials = st.session_state.ag_grid['data']
 
-        # get incremental X_real and Y_real
-        X_initial_input = st.session_state.trials[X_col_names].to_numpy()
-        Y_initial_input = st.session_state.trials[
-            st.session_state.trials['Trial Index'] == (st.session_state.trial_index)][Y_col_names].to_numpy()
+    #     # get incremental X_real and Y_real
+    #     X_initial_input = st.session_state.trials[X_col_names].to_numpy()
+    #     Y_initial_input = st.session_state.trials[
+    #         st.session_state.trials['Trial Index'] == (st.session_state.trial_index)][Y_col_names].to_numpy()
 
-        # run trial to update surrogate model
-        st.session_state.exp.run_trial(st.session_state.last_X_new, st.session_state.last_X_new_real, Y_initial_input)
+    #     # run trial to update surrogate model
+    #     st.session_state.exp.run_trial(st.session_state.last_X_new, st.session_state.last_X_new_real, Y_initial_input)
 
-        # generate the first batch 
-        trial_no = st.session_state.trial_index + 1
-        X_new, X_new_real, acq_func = st.session_state.exp.generate_next_point(
-                n_candidates=st.session_state.n_batch)
-        for row in X_new_real:
-            row_dict = dict(zip(['Trial Index', 'Trial Type'] + X_col_names, [trial_no, "BO"] + row.tolist()))
-            row_df = pd.DataFrame([row_dict])
-            st.session_state.trials = pd.concat([st.session_state.trials, row_df])
+    #     # generate the first batch 
+    #     trial_no = st.session_state.trial_index + 1
+    #     X_new, X_new_real, acq_func = st.session_state.exp.generate_next_point(
+    #             n_candidates=st.session_state.n_batch)
+    #     for row in X_new_real:
+    #         row_dict = dict(zip(['Trial Index', 'Trial Type'] + X_col_names, [trial_no, "BO"] + row.tolist()))
+    #         row_df = pd.DataFrame([row_dict])
+    #         st.session_state.trials = pd.concat([st.session_state.trials, row_df])
 
-        # update last X_new, X_new_real, trial_index
-        st.session_state.last_X_new = X_new
-        st.session_state.last_X_new_real = X_new_real
-        st.session_state.trial_index = trial_no
+    #     # update last X_new, X_new_real, trial_index
+    #     st.session_state.last_X_new = X_new
+    #     st.session_state.last_X_new_real = X_new_real
+    #     st.session_state.trial_index = trial_no
 
 def render_exp_info():
 
