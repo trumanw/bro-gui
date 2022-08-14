@@ -136,7 +136,8 @@ def render_initial_params():
                 n_candidates=st.session_state.n_batch)
         for row in X_new_real:
             row_dict = dict(zip(['Trial Index', 'Trial Type'] + X_col_names, [trial_no, "BO"] + row.tolist()))
-            st.session_state.trials = st.session_state.trials.append(row_dict, ignore_index=True)
+            row_df = pd.DataFrame([row_dict])
+            st.session_state.trials = pd.concat([st.session_state.trials, row_df])
         
         # update last X_new, X_new_real, trial_index
         st.session_state.last_X_new = X_new
@@ -162,7 +163,8 @@ def render_initial_params():
                 n_candidates=st.session_state.n_batch)
         for row in X_new_real:
             row_dict = dict(zip(['Trial Index', 'Trial Type'] + X_col_names, [trial_no, "BO"] + row.tolist()))
-            st.session_state.trials = st.session_state.trials.append(row_dict, ignore_index=True)
+            row_df = pd.DataFrame([row_dict])
+            st.session_state.trials = pd.concat([st.session_state.trials, row_df])
 
         # update last X_new, X_new_real, trial_index
         st.session_state.last_X_new = X_new
