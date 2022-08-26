@@ -115,24 +115,33 @@ def render_trials_table():
         Y_trials_headers = st.session_state.Y_trials_headers
 
         grid_options = {
+            "defaultColDef": {
+                "minWidth": 5,
+                "editable": False,
+                "filter": True,
+                "resizable": True,
+                "sortable": True
+            },
             "columnDefs": [{
                     "headerName": col_name,
                     "field": col_name,
                     "editable": False,
-                    "type": "numberColumn",
-                } for col_name in fixed_trials_headers]+ [{
+                    "type": ["numericColumn", "numberColumnFilter"]
+                } for col_name in fixed_trials_headers]+ \
+                [{
                     "headerName": col_name,
                     "field": col_name,
                     "editable": True,
-                    "type": "numberColumn",
-                } for col_name in X_trials_headers] + [{
+                    "type": ["numericColumn"]
+                } for col_name in X_trials_headers] + \
+                [{
                     "headerName": col_name,
                     "field": col_name,
                     "editable": True,
-                    "type": "numberColumn",
+                    "type": ["numericColumn", "numberColumnFilter"]
                 } for col_name in Y_trials_headers],
         }
-        st.session_state.ag_grid = AgGrid(df, grid_options)
+        st.session_state.ag_grid = AgGrid(df, grid_options, fit_columns_on_grid_load=True)
 
 def render_pareto_front():
     st.sidebar.markdown('## Step 3. Visualize Pareto Front')
