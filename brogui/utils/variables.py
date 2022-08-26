@@ -17,6 +17,15 @@ DOE_OPTIONS = ["Full Factorial", "Latin Hypercube", "Norm Transform", "Randomize
 
 # Init viable parameters
 OPTION_PARAMS = ["T", "P", "GR", "LR", "C"]
+
+# Trial type options
+TRIALS_TYPE_INIT = "INIT"
+TRIALS_TYPE_BO = "BO"
+
+# Fix column name of trials table
+TRIALS_TABLE_COLUMN_TYPE = 'Trial Type'
+TRIALS_TABLE_COLUMN_INDEX = 'Trial Index'
+
 def VariableFactory(class_name):
 
     """Factory Method"""
