@@ -7,7 +7,9 @@ from nextorch.parameter import ParameterSpace
 from nextorch.utils import encode_to_real_ParameterSpace
 from st_aggrid import AgGrid
 
-from utils.variables import AF_OPTIONS, DOE_OPTIONS
+from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
+    TRIALS_TABLE_COLUMN_TYPE, TRIALS_TABLE_COLUMN_INDEX,\
+    TRIALS_TYPE_INIT, TRIALS_TYPE_BO
 from utils.variables import OPTION_PARAMS, VariableFactory
 from utils.plotting import pareto_front
 
@@ -39,7 +41,7 @@ def experiment_page():
 
     acqucision_function_select = st.sidebar.selectbox(
         'Acqucision Function', (AF_OPTIONS),
-        index=1
+        index=6
     )
     st.session_state.acqucision_function_select = acqucision_function_select
 
@@ -69,16 +71,7 @@ def experiment_page():
         bo_params = [i.parameter() for i in params]
         parameter_space = ParameterSpace(bo_params)
 
-        # X_init_lhc = []
-        # X_ranges_vec = np.array([i[1] - i[0] for i in X_ranges])
-        # X_ranges_lower = np.array([i[0] for i in X_ranges])
-        # for row in X_init_lhc:
-        #     new_row = row * X_ranges_vec + X_ranges_lower
-        #     new_X_init_lhc.append(new_row)
-        # X_init_lhc = unit_to_encode_ParameterSpace(X_init_lhc_original, parameter_space)
         real_X_init_lhc = encode_to_real_ParameterSpace(X_init_lhc_original, parameter_space)
-        # print(real_X_init_lhc)
-        # print(X_init_lhc_original)
     
         X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
         rescale_X_init_lhc = pd.DataFrame(
@@ -86,16 +79,16 @@ def experiment_page():
         )
 
         # add "Trial Number", "Trial Type" into the initial df
-        rescale_X_init_lhc['Trial Type'] = 'init'
-        rescale_X_init_lhc['Trial Index'] = 0
+        rescale_X_init_lhc[TRIALS_TABLE_COLUMN_INDEX] = 0
+        rescale_X_init_lhc[TRIALS_TABLE_COLUMN_TYPE] = TRIALS_TYPE_INIT 
         for target_col in Y_vector:
             rescale_X_init_lhc[target_col] = np.nan
-        new_cols_names_ordered = ['Trial Index', 'Trial Type'] + X_col_names + Y_vector
+        new_cols_names_ordered = [TRIALS_TABLE_COLUMN_INDEX, TRIALS_TABLE_COLUMN_TYPE] + X_col_names + Y_vector
         rescale_X_init_lhc = rescale_X_init_lhc[new_cols_names_ordered]
         
         # cache trials table
         st.session_state.trials = rescale_X_init_lhc
-        st.session_state.fixed_trials_headers = ['Trial Index', 'Trial Type']
+        st.session_state.fixed_trials_headers = [TRIALS_TABLE_COLUMN_INDEX, TRIALS_TABLE_COLUMN_TYPE]
         st.session_state.X_trials_headers = X_col_names
         st.session_state.Y_trials_headers = Y_vector
         # create a new experiment
@@ -109,8 +102,7 @@ def experiment_page():
 def render():
     render_exp_info()
     render_params_info()
-    render_start_widget()
-    render_explore_widget()
+    render_next_widget()
     render_trials_table()
     render_pareto_front()
 
@@ -123,27 +115,36 @@ def render_trials_table():
         Y_trials_headers = st.session_state.Y_trials_headers
 
         grid_options = {
+            "defaultColDef": {
+                "minWidth": 5,
+                "editable": False,
+                "filter": True,
+                "resizable": True,
+                "sortable": True
+            },
             "columnDefs": [{
                     "headerName": col_name,
                     "field": col_name,
-                    "editable": True,
-                    "type": "numberColumn",
-                } for col_name in fixed_trials_headers]+ [{
+                    "editable": False,
+                    "type": ["numericColumn", "numberColumnFilter"]
+                } for col_name in fixed_trials_headers]+ \
+                [{
                     "headerName": col_name,
                     "field": col_name,
                     "editable": True,
-                    "type": "numberColumn",
-                } for col_name in X_trials_headers] + [{
+                    "type": ["numericColumn"]
+                } for col_name in X_trials_headers] + \
+                [{
                     "headerName": col_name,
                     "field": col_name,
                     "editable": True,
-                    "type": "numberColumn",
+                    "type": ["numericColumn", "numberColumnFilter"]
                 } for col_name in Y_trials_headers],
         }
-        st.session_state.ag_grid = AgGrid(df, grid_options)
+        st.session_state.ag_grid = AgGrid(df, grid_options, fit_columns_on_grid_load=True)
 
 def render_pareto_front():
-    st.sidebar.markdown('## Step 4. Visualize Pareto Front')
+    st.sidebar.markdown('## Step 3. Visualize Pareto Front')
 
     bo_plot_btn = st.sidebar.button('Plot')
     if bo_plot_btn:
@@ -160,77 +161,56 @@ def render_pareto_front():
             col_2.write('All sampled points')
             col_2.pyplot(all_samples_fig)
 
-def render_explore_widget():
-    st.sidebar.markdown('## Step 3. Human-in-the-loop')
-
-    params = [VariableFactory(i) for i in st.session_state.X_vector]
-    X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
-    Y_col_names = st.session_state.Y_vector
+def render_next_widget():
+    st.sidebar.markdown('## Step 2. Human-in-the-loop')
 
     bo_next_btn = st.sidebar.button('Explore')
     if bo_next_btn:
-        st.session_state.trials = st.session_state.ag_grid['data']
-        # convert X_col_names and Y_col_names from str to float
-        for col_name in X_col_names + Y_col_names:
-            st.session_state.trials[col_name] = st.session_state.trials[col_name].astype(float)
+        params = [VariableFactory(i) for i in st.session_state.X_vector]
+        X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
+        Y_col_names = st.session_state.Y_vector
+        X_ranges = [i.parameter_range for i in params]
+        X_units = [f"{i.unit}" for i in params]
 
-        # get incremental X_real and Y_real
-        X_initial_input = st.session_state.trials[X_col_names].to_numpy()
-        Y_initial_input = st.session_state.trials[
-            st.session_state.trials['Trial Index'] == (st.session_state.trial_index)][Y_col_names].to_numpy()
+        # get current state of the traisl table
+        df = st.session_state.ag_grid['data']
+        # convert all the values from str to float
+        for col in X_col_names + Y_col_names:
+            df[col] = df[col].astype(float)
 
-        # run trial to update surrogate model
-        st.session_state.exp.run_trial(st.session_state.last_X_new, st.session_state.last_X_new_real, Y_initial_input)
+        # collect unique trials types
+        trials_types = df[TRIALS_TABLE_COLUMN_TYPE].unique()
+        if len(trials_types) > 1:   # human-in-the-loop
+            Y_initial_input = df[df[TRIALS_TABLE_COLUMN_INDEX] == (st.session_state.trial_index)][Y_col_names].to_numpy()
 
-        # generate the first batch 
+            # run trial to update surrogate model
+            st.session_state.exp.run_trial(
+                st.session_state.last_X_new, 
+                st.session_state.last_X_new_real, 
+                Y_initial_input)
+
+        else:   # initialize experiment
+            X_initial_input = df[X_col_names].to_numpy()
+            Y_initial_input = df[Y_col_names].to_numpy()
+            st.session_state.exp.input_data(
+                X_initial_input, Y_initial_input,
+                X_ranges = X_ranges, X_names = X_units, 
+                unit_flag = True)
+
+            #FIXME valid to the range of the target values
+            ref_point = [10.0, 10.0]
+            st.session_state.exp.set_ref_point(ref_point)
+            st.session_state.exp.set_optim_specs(maximize=True)
+
+        # update trials table
         trial_no = st.session_state.trial_index + 1
         X_new, X_new_real, acq_func = st.session_state.exp.generate_next_point(
                 n_candidates=st.session_state.n_batch)
+
+        # update input AgGrid data back to the session_state.trials
+        st.session_state.trials = df
         for row in X_new_real:
-            row_dict = dict(zip(['Trial Index', 'Trial Type'] + X_col_names, [trial_no, "BO"] + row.tolist()))
-            row_df = pd.DataFrame([row_dict])
-            st.session_state.trials = pd.concat([st.session_state.trials, row_df])
-
-        # update last X_new, X_new_real, trial_index
-        st.session_state.last_X_new = X_new
-        st.session_state.last_X_new_real = X_new_real
-        st.session_state.trial_index = trial_no
-
-def render_start_widget():
-    st.sidebar.markdown('## Step 2. Initialize Experiment')
-
-    params = [VariableFactory(i) for i in st.session_state.X_vector]
-    X_ranges = [i.parameter_range for i in params]
-    X_units = [f"{i.unit}" for i in params]
-    X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
-    Y_col_names = st.session_state.Y_vector
-
-    bo_start_btn = st.sidebar.button('Start')
-    if bo_start_btn:
-        st.session_state.trials = st.session_state.ag_grid['data']
-        # convert X_col_names and Y_col_names from str to float
-        for col_name in X_col_names + Y_col_names:
-            st.session_state.trials[col_name] = st.session_state.trials[col_name].astype(float)
-
-        # get Y_initial and X_initial
-        X_initial_input = st.session_state.trials[X_col_names].to_numpy()
-        Y_initial_input = st.session_state.trials[Y_col_names].to_numpy()
-        st.session_state.exp.input_data(
-            X_initial_input, Y_initial_input,
-            X_ranges = X_ranges, X_names = X_units, 
-            unit_flag = True
-        )
-        #FIXME valid to the range of the target values
-        ref_point = [10.0, 10.0]
-        st.session_state.exp.set_ref_point(ref_point)
-        st.session_state.exp.set_optim_specs(maximize=True)
-
-        # start run trial-0 and generate samples for trial-1
-        trial_no = st.session_state.trial_index + 1
-        X_new, X_new_real, acq_func = st.session_state.exp.generate_next_point(
-                n_candidates=st.session_state.n_batch)
-        for row in X_new_real:
-            row_dict = dict(zip(['Trial Index', 'Trial Type'] + X_col_names, [trial_no, "BO"] + row.tolist()))
+            row_dict = dict(zip([TRIALS_TABLE_COLUMN_INDEX, TRIALS_TABLE_COLUMN_TYPE] + X_col_names, [trial_no, TRIALS_TYPE_BO] + row.tolist()))
             row_df = pd.DataFrame([row_dict])
             st.session_state.trials = pd.concat([st.session_state.trials, row_df])
         
@@ -240,7 +220,6 @@ def render_start_widget():
         st.session_state.trial_index = trial_no
 
 def render_exp_info():
-
     key_items = [
         'Exp Name', 'Goal', 'Output(Y) dimension', 
         'Input(X) dimension', 'Acqucision function', 
