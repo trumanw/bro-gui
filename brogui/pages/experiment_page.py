@@ -141,7 +141,12 @@ def render_trials_table():
                     "type": ["numericColumn", "numberColumnFilter"]
                 } for col_name in Y_trials_headers],
         }
-        st.session_state.ag_grid = AgGrid(df, grid_options, fit_columns_on_grid_load=True)
+        st.session_state.ag_grid = AgGrid(
+            df, 
+            theme="streamlit", 
+            gridOptions=grid_options, 
+            fit_columns_on_grid_load=True, 
+            reload_data=False)
 
 def render_pareto_front():
     st.sidebar.markdown('## Step 3. Visualize Pareto Front')
