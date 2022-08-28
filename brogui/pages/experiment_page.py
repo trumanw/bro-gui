@@ -9,7 +9,8 @@ from st_aggrid import AgGrid
 
 from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
     TRIALS_TABLE_COLUMN_TYPE, TRIALS_TABLE_COLUMN_INDEX,\
-    TRIALS_TYPE_INIT, TRIALS_TYPE_BO
+    TRIALS_TYPE_INIT, TRIALS_TYPE_BO, INFO_TABLE_HEIGHT,\
+    TRIALS_TABLE_HEIGTH
 from utils.variables import OPTION_PARAMS, VariableFactory
 from utils.plotting import pareto_front
 
@@ -165,6 +166,7 @@ def render_trials_table():
             df, 
             theme="streamlit", 
             gridOptions=grid_options, 
+            height=TRIALS_TABLE_HEIGTH,
             fit_columns_on_grid_load=True, 
             reload_data=False)
         
@@ -283,27 +285,28 @@ def render_exp_and_params():
     exp_desc_tb = pd.DataFrame({'Key Items': key_items, "Description": descriptions})
     with col1:
         st.markdown('### Experiment Info')
-        st.table(exp_desc_tb)
-        # grid_options = {
-        #     "defaultColDef": {
-        #         "minWidth": 5,
-        #         "editable": False,
-        #         "filter": True,
-        #         "resizable": True,
-        #         "sortable": True
-        #     },
-        #     "columnDefs": [{
-        #         "headerName": col_name,
-        #         "field": col_name,
-        #         "editable": False
-        #     } for col_name in ["Key Items", "Description"]]
-        # }
-        # st.session_state.ag_grid = AgGrid(
-        #     exp_desc_tb, 
-        #     theme="streamlit", 
-        #     gridOptions=grid_options, 
-        #     fit_columns_on_grid_load=True, 
-        #     reload_data=True)
+        # st.table(exp_desc_tb)
+        grid_options = {
+            "defaultColDef": {
+                "minWidth": 5,
+                "editable": False,
+                "filter": True,
+                "resizable": True,
+                "sortable": True
+            },
+            "columnDefs": [{
+                "headerName": col_name,
+                "field": col_name,
+                "editable": False
+            } for col_name in ["Key Items", "Description"]]
+        }
+        st.session_state.ag_grid = AgGrid(
+            exp_desc_tb, 
+            theme="streamlit", 
+            gridOptions=grid_options, 
+            height=INFO_TABLE_HEIGHT,
+            fit_columns_on_grid_load=True, 
+            reload_data=True)
 
     # render params info
     params = [VariableFactory(i) for i in st.session_state.X_vector]
@@ -319,27 +322,28 @@ def render_exp_and_params():
         'Interval': parameter_interval})
     with col2:
         st.markdown('### Parameter Info')
-        st.table(param_desc_tb)
-        # grid_options = {
-        #     "defaultColDef": {
-        #         "minWidth": 5,
-        #         "editable": False,
-        #         "filter": True,
-        #         "resizable": True,
-        #         "sortable": True
-        #     },
-        #     "columnDefs": [{
-        #         "headerName": col_name,
-        #         "field": col_name,
-        #         "editable": False
-        #     } for col_name in ["Parameter", "Type", "Values", "Interval"]]
-        # }
-        # st.session_state.ag_grid = AgGrid(
-        #     param_desc_tb, 
-        #     theme="streamlit", 
-        #     gridOptions=grid_options, 
-        #     fit_columns_on_grid_load=True, 
-        #     reload_data=True)
+        # st.table(param_desc_tb)
+        grid_options = {
+            "defaultColDef": {
+                "minWidth": 5,
+                "editable": False,
+                "filter": True,
+                "resizable": True,
+                "sortable": True
+            },
+            "columnDefs": [{
+                "headerName": col_name,
+                "field": col_name,
+                "editable": False
+            } for col_name in ["Parameter", "Type", "Values", "Interval"]]
+        }
+        st.session_state.ag_grid = AgGrid(
+            param_desc_tb, 
+            theme="streamlit", 
+            height=INFO_TABLE_HEIGHT,
+            gridOptions=grid_options, 
+            fit_columns_on_grid_load=True, 
+            reload_data=True)
 
 def render_exp_info():
     key_items = [
