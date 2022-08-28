@@ -102,29 +102,9 @@ def experiment_page():
 
 def render():
     render_exp_and_params()
-    # render_exp_info()
-    # render_params_info()
     render_next_widget()
     render_trials_table()
-    # render_save_trials_table()
-    # render_load_trials_table()
     render_pareto_front()
-
-def render_save_trials_table():
-    trial_tb_save_btn = st.button('Save')
-    if trial_tb_save_btn:
-        # get current state of the traisl table
-        df = st.session_state.ag_grid['data']
-        print('Save Table: ')
-        print(df)
-
-def render_load_trials_table():
-    trial_tb_load_btn = st.button('Load')
-    if trial_tb_load_btn:
-        # get current state of the traisl table
-        df = st.session_state.ag_grid['data']
-        print('Load Table: ')
-        print(df)
 
 def render_trials_table():
     if 'trials' in st.session_state:
@@ -170,20 +150,24 @@ def render_trials_table():
             fit_columns_on_grid_load=True, 
             reload_data=False)
         
-        col1, col2, _, _ = st.columns([0.2, 0.2, 1, 1])
-        trial_tb_save_btn = col1.button('Save')
-        if trial_tb_save_btn:
-            # get current state of the traisl table
-            df = st.session_state.ag_grid['data']
-            print('Save Table: ')
-            print(df)
-        
-        trial_tb_load_btn = col2.button('Load')
-        if trial_tb_load_btn:
-            # get current state of the traisl table
-            df = st.session_state.ag_grid['data']
-            print('Load Table: ')
-            print(df)
+        # get current state of the traisl table
+        df = st.session_state.ag_grid['data']
+        csv = df.to_csv(index=False).encode('utf-8')
+        col1, col2, _, _ = st.columns([0.3, 0.3, 1, 1])
+        col1.download_button(
+            "Export",
+            csv,
+            "file.csv",
+            "text/csv",
+            key='download-csv'
+            )
+
+        # trial_tb_load_btn = col2.button('Load')
+        # if trial_tb_load_btn:
+        #     # get current state of the traisl table
+        #     df = st.session_state.ag_grid['data']
+        #     print('Load Table: ')
+        #     print(df)
         
         st.markdown('----')
 
@@ -344,39 +328,3 @@ def render_exp_and_params():
             gridOptions=grid_options, 
             fit_columns_on_grid_load=True, 
             reload_data=True)
-
-def render_exp_info():
-    key_items = [
-        'Exp Name', 'Goal', 'Output(Y) dimension', 
-        'Input(X) dimension', 'Acqucision function', 
-        'Initial sampling function', 
-        'Initial sampling num', 'Batch sampling num']
-    descriptions = [
-        st.session_state.exp_name, 
-        st.session_state.exp_desc, 
-        str(st.session_state.Y_dims), 
-        str(st.session_state.X_dims), 
-        st.session_state.acqucision_function_select, 
-        st.session_state.initial_sampling_select, 
-        str(st.session_state.n_initial),
-        str(st.session_state.n_batch)]
-    exp_desc_tb = pd.DataFrame({'Key Items': key_items, "Description": descriptions})
-
-    st.markdown('### Experiment Info')
-    st.table(exp_desc_tb)
-
-def render_params_info():
-    params = [VariableFactory(i) for i in st.session_state.X_vector]
-    parameter_names = [f"{i.symbol} - {i.parameter_name}({i.unit})" for i in params]
-    parameter_types = [f"{i.parameter_type}" for i in params]
-    parameter_values = [f"{str(i.parameter_range)}" for i in params]
-    parameter_interval = [f"{i.interval}" for i in params]
-
-    param_desc_tb = pd.DataFrame({
-        'Parameter': parameter_names, 
-        'Type': parameter_types, 
-        'Values': parameter_values,
-        'Interval': parameter_interval})
-
-    st.markdown('### Parameter Info')
-    st.table(param_desc_tb)
