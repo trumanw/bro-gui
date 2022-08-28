@@ -9,7 +9,8 @@ from st_aggrid import AgGrid
 
 from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
     TRIALS_TABLE_COLUMN_TYPE, TRIALS_TABLE_COLUMN_INDEX,\
-    TRIALS_TYPE_INIT, TRIALS_TYPE_BO
+    TRIALS_TYPE_INIT, TRIALS_TYPE_BO, INFO_TABLE_HEIGHT,\
+    TRIALS_TABLE_HEIGTH
 from utils.variables import OPTION_PARAMS, VariableFactory
 from utils.plotting import pareto_front
 
@@ -100,14 +101,14 @@ def experiment_page():
     render()
 
 def render():
-    render_exp_info()
-    render_params_info()
+    render_exp_and_params()
     render_next_widget()
     render_trials_table()
     render_pareto_front()
 
 def render_trials_table():
     if 'trials' in st.session_state:
+        st.markdown('----')
         st.markdown('### Interative Trials Table')
         df = st.session_state.trials
         fixed_trials_headers = st.session_state.fixed_trials_headers
@@ -141,7 +142,34 @@ def render_trials_table():
                     "type": ["numericColumn", "numberColumnFilter"]
                 } for col_name in Y_trials_headers],
         }
-        st.session_state.ag_grid = AgGrid(df, grid_options, fit_columns_on_grid_load=True)
+        st.session_state.ag_grid = AgGrid(
+            df, 
+            theme="streamlit", 
+            gridOptions=grid_options, 
+            height=TRIALS_TABLE_HEIGTH,
+            fit_columns_on_grid_load=True, 
+            reload_data=False)
+        
+        # get current state of the traisl table
+        df = st.session_state.ag_grid['data']
+        csv = df.to_csv(index=False).encode('utf-8')
+        col1, col2, _, _ = st.columns([0.3, 0.3, 1, 1])
+        col1.download_button(
+            "Export",
+            csv,
+            "file.csv",
+            "text/csv",
+            key='download-csv'
+            )
+
+        # trial_tb_load_btn = col2.button('Load')
+        # if trial_tb_load_btn:
+        #     # get current state of the traisl table
+        #     df = st.session_state.ag_grid['data']
+        #     print('Load Table: ')
+        #     print(df)
+        
+        st.markdown('----')
 
 def render_pareto_front():
     st.sidebar.markdown('## Step 3. Visualize Pareto Front')
@@ -219,7 +247,11 @@ def render_next_widget():
         st.session_state.last_X_new_real = X_new_real
         st.session_state.trial_index = trial_no
 
-def render_exp_info():
+def render_exp_and_params():
+    st.markdown('----')
+    col1, col2 = st.columns([0.5, 1])
+    
+    # render exp info
     key_items = [
         'Exp Name', 'Goal', 'Output(Y) dimension', 
         'Input(X) dimension', 'Acqucision function', 
@@ -235,11 +267,32 @@ def render_exp_info():
         str(st.session_state.n_initial),
         str(st.session_state.n_batch)]
     exp_desc_tb = pd.DataFrame({'Key Items': key_items, "Description": descriptions})
+    with col1:
+        st.markdown('### Experiment Info')
+        # st.table(exp_desc_tb)
+        grid_options = {
+            "defaultColDef": {
+                "minWidth": 5,
+                "editable": False,
+                "filter": True,
+                "resizable": True,
+                "sortable": True
+            },
+            "columnDefs": [{
+                "headerName": col_name,
+                "field": col_name,
+                "editable": False
+            } for col_name in ["Key Items", "Description"]]
+        }
+        st.session_state.ag_grid = AgGrid(
+            exp_desc_tb, 
+            theme="streamlit", 
+            gridOptions=grid_options, 
+            height=INFO_TABLE_HEIGHT,
+            fit_columns_on_grid_load=True, 
+            reload_data=True)
 
-    st.markdown('### Experiment Info')
-    st.table(exp_desc_tb)
-
-def render_params_info():
+    # render params info
     params = [VariableFactory(i) for i in st.session_state.X_vector]
     parameter_names = [f"{i.symbol} - {i.parameter_name}({i.unit})" for i in params]
     parameter_types = [f"{i.parameter_type}" for i in params]
@@ -251,6 +304,27 @@ def render_params_info():
         'Type': parameter_types, 
         'Values': parameter_values,
         'Interval': parameter_interval})
-
-    st.markdown('### Parameter Info')
-    st.table(param_desc_tb)
+    with col2:
+        st.markdown('### Parameter Info')
+        # st.table(param_desc_tb)
+        grid_options = {
+            "defaultColDef": {
+                "minWidth": 5,
+                "editable": False,
+                "filter": True,
+                "resizable": True,
+                "sortable": True
+            },
+            "columnDefs": [{
+                "headerName": col_name,
+                "field": col_name,
+                "editable": False
+            } for col_name in ["Parameter", "Type", "Values", "Interval"]]
+        }
+        st.session_state.ag_grid = AgGrid(
+            param_desc_tb, 
+            theme="streamlit", 
+            height=INFO_TABLE_HEIGHT,
+            gridOptions=grid_options, 
+            fit_columns_on_grid_load=True, 
+            reload_data=True)

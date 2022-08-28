@@ -26,6 +26,10 @@ TRIALS_TYPE_BO = "BO"
 TRIALS_TABLE_COLUMN_TYPE = 'Trial Type'
 TRIALS_TABLE_COLUMN_INDEX = 'Trial Index'
 
+# Info tables height
+INFO_TABLE_HEIGHT = 300
+TRIALS_TABLE_HEIGTH = 650 
+
 def VariableFactory(class_name):
 
     """Factory Method"""
