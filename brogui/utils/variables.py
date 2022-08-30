@@ -66,8 +66,8 @@ class T(Variable):
         self.parameter_name = "Temperature"
         self.parameter_type = ParameterType.ordinal.value
         self.unit = "C"
-        self.parameter_range = [80, 150]
-        self.interval = 5
+        self.parameter_range = [100, 150]
+        self.interval = 10
     
     def parameter(self):
         return parameter.Parameter(
@@ -82,7 +82,7 @@ class P(Variable):
         self.parameter_name = "Pressure"
         self.parameter_type = ParameterType.ordinal.value
         self.unit = "MPa"
-        self.parameter_range = [0.1, 6]
+        self.parameter_range = [2, 6]
         self.interval = 1
     
     def parameter(self):
@@ -98,7 +98,7 @@ class GR(Variable):
         self.parameter_name = "Gas Flow Rate"
         self.parameter_type = ParameterType.ordinal.value
         self.unit = "mL/min"
-        self.parameter_range = [0, 100]
+        self.parameter_range = [20, 100]
         self.interval = 10
 
     def parameter(self):
@@ -114,8 +114,8 @@ class LR(Variable):
         self.parameter_name = "Liquid FLow Rate"
         self.parameter_type = ParameterType.ordinal.value
         self.unit = "mL/min"
-        self.parameter_range = [0.1, 10]
-        self.interval = 0.5
+        self.parameter_range = [0.1, 3]
+        self.interval = 0.3
 
     def parameter(self):
         return parameter.Parameter(
@@ -130,8 +130,8 @@ class C(Variable):
         self.parameter_name = "Concentration"
         self.parameter_type = ParameterType.ordinal.value
         self.unit = "wt%"
-        self.parameter_range = [10, 20]
-        self.interval = 5
+        self.parameter_range = [2.5, 10]
+        self.interval = 2.5
 
     def parameter(self):
         return parameter.Parameter(
