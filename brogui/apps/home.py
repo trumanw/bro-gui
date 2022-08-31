@@ -1,7 +1,6 @@
 import streamlit as st
-from PIL import Image
 
-def dashboard_page():
+def app():
 
     left_col, right_col = st.columns(2)
 

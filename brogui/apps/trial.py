@@ -14,7 +14,7 @@ from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
 from utils.variables import OPTION_PARAMS, VariableFactory
 from utils.plotting import pareto_front
 
-def experiment_page():
+def app():
     st.markdown("# Human-in-the-loop(HITL) Experiment")
     
     st.sidebar.markdown("## Setup Experiment")
