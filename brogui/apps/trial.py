@@ -284,7 +284,7 @@ def render_exp_and_params():
                 "editable": False
             } for col_name in ["Key Items", "Description"]]
         }
-        st.session_state.ag_grid = AgGrid(
+        AgGrid(
             exp_desc_tb, 
             theme="streamlit", 
             gridOptions=grid_options, 
@@ -321,7 +321,7 @@ def render_exp_and_params():
                 "editable": False
             } for col_name in ["Parameter", "Type", "Values", "Interval"]]
         }
-        st.session_state.ag_grid = AgGrid(
+        AgGrid(
             param_desc_tb, 
             theme="streamlit", 
             height=INFO_TABLE_HEIGHT,
