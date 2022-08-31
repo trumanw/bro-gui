@@ -58,8 +58,15 @@ def app():
     n_batch = st.sidebar.text_input('Batch Sampling Num', value='5')
     st.session_state.n_batch = int(n_batch)
 
+    # (optional) Initialize from saved trials csv file
+    st.sidebar.markdown("## Step 0. (Optional) Continue a Trial")
+    trial_csvfile = st.sidebar.file_uploader("Load from .csv file :")
+    if trial_csvfile is not None:
+        trail_df = pd.read_csv(trial_csvfile)
+        st.info("Load trial from file")
+
     # generate initial samples
-    st.sidebar.markdown("## Step 1. Generate Initial Samples")
+    st.sidebar.markdown("## Step 1. New a Trial")
     init_sampling_btn = st.sidebar.button('Sample')
     if init_sampling_btn:
         # X_init_lhc_original = doe.latin_hypercube(
@@ -102,7 +109,7 @@ def app():
 
 def render():
     render_exp_and_params()
-    render_next_widget()
+    render_explore_widget()
     render_trials_table()
     render_pareto_front()
 
@@ -153,21 +160,7 @@ def render_trials_table():
         # get current state of the traisl table
         df = st.session_state.ag_grid['data']
         csv = df.to_csv(index=False).encode('utf-8')
-        col1, col2, _, _ = st.columns([0.3, 0.3, 1, 1])
-        col1.download_button(
-            "Export",
-            csv,
-            "file.csv",
-            "text/csv",
-            key='download-csv'
-            )
-
-        # trial_tb_load_btn = col2.button('Load')
-        # if trial_tb_load_btn:
-        #     # get current state of the traisl table
-        #     df = st.session_state.ag_grid['data']
-        #     print('Load Table: ')
-        #     print(df)
+        add_trial_save_button(csv)
         
         st.markdown('----')
 
@@ -189,7 +182,16 @@ def render_pareto_front():
             col_2.write('All sampled points')
             col_2.pyplot(all_samples_fig)
 
-def render_next_widget():
+def add_trial_save_button(csv):
+    st.download_button(
+            "Export",
+            csv,
+            "file.csv",
+            "text/csv",
+            key='download-csv'
+            )
+
+def render_explore_widget():
     st.sidebar.markdown('## Step 2. Human-in-the-loop')
 
     bo_next_btn = st.sidebar.button('Explore')

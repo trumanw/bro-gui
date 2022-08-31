@@ -15,7 +15,6 @@ st.set_page_config(page_title="bro-gui", page_icon=img, layout="wide")
 app = MultiApp()
 
 from apps import home, trial
-app.add_app("Home Page", home.app)
 app.add_app("Start Trial", trial.app)
-
+app.add_app("Home Page", home.app)
 app.run()
