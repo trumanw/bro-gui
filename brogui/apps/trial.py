@@ -1,11 +1,13 @@
-from re import A
+from datetime import datetime
+
 import streamlit as st
 import pandas as pd
 import numpy as np
+from PIL import Image
+from st_aggrid import AgGrid
 from nextorch import bo, doe, io
 from nextorch.parameter import ParameterSpace
 from nextorch.utils import encode_to_real_ParameterSpace
-from st_aggrid import AgGrid
 
 from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
     TRIALS_TABLE_COLUMN_TYPE, TRIALS_TABLE_COLUMN_INDEX,\
@@ -72,7 +74,7 @@ def app():
     trial_no = None
     # (optional) Initialize from saved trials csv file
     st.sidebar.markdown("## Step 0. (Optional) Continue a Trial")
-    trial_csvfile = st.sidebar.file_uploader("Load from .csv file :")
+    trial_csvfile = st.sidebar.file_uploader("Restore trial from file:")
     if trial_csvfile is not None and 'trials' not in st.session_state:
         trial_df = pd.read_csv(trial_csvfile)
         trial_no = max(trial_df["Trial Index"].tolist())
@@ -103,7 +105,7 @@ def app():
 
     # generate initial samples
     st.sidebar.markdown("## Step 1. New a Trial")
-    init_sampling_btn = st.sidebar.button('Sample')
+    init_sampling_btn = st.sidebar.button('New')
     if init_sampling_btn:
         # X_init_lhc_original = doe.latin_hypercube(
         X_init_lhc_original = doe.randomized_design(
@@ -129,15 +131,6 @@ def app():
         
         # create a new experiment
         exp.define_space(bo_params)
-        exp.input_data(
-            X_restore_input, Y_restore_input,
-            X_ranges = X_ranges, X_names = X_units,
-            unit_flag = True)
-
-        # #FIXME init ref_point
-        ref_point = [10.0, 10.0]
-        exp.set_ref_point(ref_point)
-        exp.set_optim_specs(maximize=True)
 
         st.session_state.exp = exp
         st.session_state.trials = trial_df
@@ -225,13 +218,17 @@ def render_pareto_front():
             col_2.pyplot(all_samples_fig)
 
 def add_trial_save_button(csv):
+    exp_name = st.session_state.exp_name
+    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    trial_csvfile_name = f"{exp_name}-T-{now}.csv"
     st.download_button(
             "Export",
             csv,
-            "file.csv",
+            trial_csvfile_name,
             "text/csv",
             key='download-csv'
             )
+    
 
 def render_explore_widget():
     st.sidebar.markdown('## Step 2. Human-in-the-loop')
@@ -252,9 +249,21 @@ def render_explore_widget():
 
         # collect unique trials types
         
-        if TrialState.RESTORED == st.session_state.trial_state or \
-            TrialState.INITIALIZED == st.session_state.trial_state:
-            st.session_state.trial_state = "INLOOP"
+        if TrialState.RESTORED == st.session_state.trial_state:
+            st.session_state.trial_state = TrialState.INLOOP
+        elif TrialState.INITIALIZED == st.session_state.trial_state:
+            X_initial_input = df[X_col_names].to_numpy()
+            Y_initial_input = df[Y_col_names].to_numpy()
+            st.session_state.exp.input_data(
+                X_initial_input, Y_initial_input,
+                X_ranges = X_ranges, X_names = X_units, 
+                unit_flag = True)
+
+            #FIXME valid to the range of the target values
+            ref_point = [10.0, 10.0]
+            st.session_state.exp.set_ref_point(ref_point)
+            st.session_state.exp.set_optim_specs(maximize=True)
+            st.session_state.trial_state = TrialState.INLOOP
         elif TrialState.INLOOP == st.session_state.trial_state:
             Y_initial_input = df[df[TRIALS_TABLE_COLUMN_INDEX] == (st.session_state.trial_index)][Y_col_names].to_numpy()
             #FIXME: check no-NaN in the Y_initial_input
@@ -264,29 +273,6 @@ def render_explore_widget():
                 st.session_state.last_X_new, 
                 st.session_state.last_X_new_real, 
                 Y_initial_input)
-
-        # trials_types = df[TRIALS_TABLE_COLUMN_TYPE].unique()
-        # if len(trials_types) > 1:   # human-in-the-loop
-        #     Y_initial_input = df[df[TRIALS_TABLE_COLUMN_INDEX] == (st.session_state.trial_index)][Y_col_names].to_numpy()
-
-        #     # run trial to update surrogate model
-        #     st.session_state.exp.run_trial(
-        #         st.session_state.last_X_new, 
-        #         st.session_state.last_X_new_real, 
-        #         Y_initial_input)
-
-        # else:   # initialize experiment
-        #     X_initial_input = df[X_col_names].to_numpy()
-        #     Y_initial_input = df[Y_col_names].to_numpy()
-        #     st.session_state.exp.input_data(
-        #         X_initial_input, Y_initial_input,
-        #         X_ranges = X_ranges, X_names = X_units, 
-        #         unit_flag = True)
-
-        #     #FIXME valid to the range of the target values
-        #     ref_point = [10.0, 10.0]
-        #     st.session_state.exp.set_ref_point(ref_point)
-        #     st.session_state.exp.set_optim_specs(maximize=True)
 
         # update trials table
         trial_no = st.session_state.trial_index + 1

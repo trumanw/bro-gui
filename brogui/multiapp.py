@@ -39,6 +39,8 @@ class MultiApp:
         })
 
     def run(self):
+        _, c_col, _ = st.sidebar.columns(3)
+        c_col.image(st.session_state.logo, output_format='PNG')
         app = st.sidebar.selectbox(
             "Go To", self.apps, format_func=lambda app: app['title']
         )
