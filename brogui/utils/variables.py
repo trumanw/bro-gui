@@ -1,6 +1,7 @@
 import importlib
 from abc import ABC
 from enum import Enum
+from multiprocessing.pool import TERMINATE
 
 from nextorch import parameter
 
@@ -21,6 +22,13 @@ OPTION_PARAMS = ["T", "P", "GR", "LR", "C"]
 # Trial type options
 TRIALS_TYPE_INIT = "INIT"
 TRIALS_TYPE_BO = "BO"
+
+# Trial running state
+class TrialState(Enum):
+    INITIALIZED="INIT"
+    RESTORED="RESTORED"
+    INLOOP="INLOOP"
+    TERMINATED="TERMINATED"
 
 # Fix column name of trials table
 TRIALS_TABLE_COLUMN_TYPE = 'Trial Type'

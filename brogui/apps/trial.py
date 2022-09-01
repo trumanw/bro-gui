@@ -1,20 +1,22 @@
-from re import A
+from datetime import datetime
+
 import streamlit as st
 import pandas as pd
 import numpy as np
+from PIL import Image
+from st_aggrid import AgGrid
 from nextorch import bo, doe, io
 from nextorch.parameter import ParameterSpace
 from nextorch.utils import encode_to_real_ParameterSpace
-from st_aggrid import AgGrid
 
 from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
     TRIALS_TABLE_COLUMN_TYPE, TRIALS_TABLE_COLUMN_INDEX,\
     TRIALS_TYPE_INIT, TRIALS_TYPE_BO, INFO_TABLE_HEIGHT,\
     TRIALS_TABLE_HEIGTH
-from utils.variables import OPTION_PARAMS, VariableFactory
+from utils.variables import OPTION_PARAMS, VariableFactory, TrialState
 from utils.plotting import pareto_front
 
-def experiment_page():
+def app():
     st.markdown("# Human-in-the-loop(HITL) Experiment")
     
     st.sidebar.markdown("## Setup Experiment")
@@ -58,51 +60,91 @@ def experiment_page():
     n_batch = st.sidebar.text_input('Batch Sampling Num', value='5')
     st.session_state.n_batch = int(n_batch)
 
+    # show initial sampled variables in a table
+    params = [VariableFactory(i) for i in st.session_state.X_vector]
+    bo_params = [i.parameter() for i in params]
+    parameter_space = ParameterSpace(bo_params)
+    X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
+    Y_col_names = st.session_state.Y_vector
+    X_ranges = [i.parameter_range for i in params]
+    X_units = [f"{i.unit}" for i in params]
+
+    exp = bo.EHVIMOOExperiment(st.session_state.exp_name)
+    trial_df = None
+    trial_no = None
+    # (optional) Initialize from saved trials csv file
+    st.sidebar.markdown("## Step 0. (Optional) Continue a Trial")
+    trial_csvfile = st.sidebar.file_uploader("Restore trial from file:")
+    if trial_csvfile is not None and 'trials' not in st.session_state:
+        trial_df = pd.read_csv(trial_csvfile)
+        trial_no = max(trial_df["Trial Index"].tolist())
+        # remove rows including NaN values
+        nonan_trial_df = trial_df.dropna(axis=0, how='any')
+        X_restore_input = nonan_trial_df[X_col_names].to_numpy()
+        Y_restore_input = nonan_trial_df[Y_col_names].to_numpy()
+
+        # restore bo.Experiment instance from file
+        exp.define_space(bo_params)
+        exp.input_data(
+            X_restore_input, Y_restore_input,
+            X_ranges = X_ranges, X_names = X_units,
+            unit_flag = True)
+
+        #FIXME init ref_point
+        ref_point = [10.0, 10.0]
+        exp.set_ref_point(ref_point)
+        exp.set_optim_specs(maximize=True)
+
+        st.session_state.exp = exp
+        st.session_state.trials = trial_df
+        st.session_state.trial_state = TrialState.RESTORED
+        st.session_state.trial_index = trial_no 
+        st.session_state.fixed_trials_headers = [TRIALS_TABLE_COLUMN_INDEX, TRIALS_TABLE_COLUMN_TYPE]
+        st.session_state.X_trials_headers = X_col_names
+        st.session_state.Y_trials_headers = Y_vector
+
     # generate initial samples
-    st.sidebar.markdown("## Step 1. Generate Initial Samples")
-    init_sampling_btn = st.sidebar.button('Sample')
+    st.sidebar.markdown("## Step 1. New a Trial")
+    init_sampling_btn = st.sidebar.button('New')
     if init_sampling_btn:
         # X_init_lhc_original = doe.latin_hypercube(
         X_init_lhc_original = doe.randomized_design(
             n_dim = st.session_state.X_dims, 
             n_points = st.session_state.n_initial)
 
-        # show initial sampled variables in a table
-        params = [VariableFactory(i) for i in st.session_state.X_vector]
-        bo_params = [i.parameter() for i in params]
-        parameter_space = ParameterSpace(bo_params)
-
         real_X_init_lhc = encode_to_real_ParameterSpace(X_init_lhc_original, parameter_space)
     
-        X_col_names = [f"{i.symbol} ({i.unit})" for i in params]
-        rescale_X_init_lhc = pd.DataFrame(
+        trial_df = pd.DataFrame(
             data=np.array(real_X_init_lhc), columns=X_col_names
         )
+        trial_no = 0 
 
         # add "Trial Number", "Trial Type" into the initial df
-        rescale_X_init_lhc[TRIALS_TABLE_COLUMN_INDEX] = 0
-        rescale_X_init_lhc[TRIALS_TABLE_COLUMN_TYPE] = TRIALS_TYPE_INIT 
+        trial_df[TRIALS_TABLE_COLUMN_INDEX] = 0
+        trial_df[TRIALS_TABLE_COLUMN_TYPE] = TRIALS_TYPE_INIT 
         for target_col in Y_vector:
-            rescale_X_init_lhc[target_col] = np.nan
+            trial_df[target_col] = np.nan
         new_cols_names_ordered = [TRIALS_TABLE_COLUMN_INDEX, TRIALS_TABLE_COLUMN_TYPE] + X_col_names + Y_vector
-        rescale_X_init_lhc = rescale_X_init_lhc[new_cols_names_ordered]
+        trial_df = trial_df[new_cols_names_ordered]
+        X_restore_input = trial_df[X_col_names].to_numpy()
+        Y_restore_input = trial_df[Y_col_names].to_numpy()
         
-        # cache trials table
-        st.session_state.trials = rescale_X_init_lhc
+        # create a new experiment
+        exp.define_space(bo_params)
+
+        st.session_state.exp = exp
+        st.session_state.trials = trial_df
+        st.session_state.trial_state = TrialState.INITIALIZED
+        st.session_state.trial_index = trial_no 
         st.session_state.fixed_trials_headers = [TRIALS_TABLE_COLUMN_INDEX, TRIALS_TABLE_COLUMN_TYPE]
         st.session_state.X_trials_headers = X_col_names
         st.session_state.Y_trials_headers = Y_vector
-        # create a new experiment
-        exp_lhc = bo.EHVIMOOExperiment(st.session_state.exp_name)
-        exp_lhc.define_space(bo_params)
-        st.session_state.exp = exp_lhc
-        st.session_state.trial_index = 0
 
     render()
 
 def render():
     render_exp_and_params()
-    render_next_widget()
+    render_explore_widget()
     render_trials_table()
     render_pareto_front()
 
@@ -153,21 +195,7 @@ def render_trials_table():
         # get current state of the traisl table
         df = st.session_state.ag_grid['data']
         csv = df.to_csv(index=False).encode('utf-8')
-        col1, col2, _, _ = st.columns([0.3, 0.3, 1, 1])
-        col1.download_button(
-            "Export",
-            csv,
-            "file.csv",
-            "text/csv",
-            key='download-csv'
-            )
-
-        # trial_tb_load_btn = col2.button('Load')
-        # if trial_tb_load_btn:
-        #     # get current state of the traisl table
-        #     df = st.session_state.ag_grid['data']
-        #     print('Load Table: ')
-        #     print(df)
+        add_trial_save_button(csv)
         
         st.markdown('----')
 
@@ -189,7 +217,20 @@ def render_pareto_front():
             col_2.write('All sampled points')
             col_2.pyplot(all_samples_fig)
 
-def render_next_widget():
+def add_trial_save_button(csv):
+    exp_name = st.session_state.exp_name
+    now = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    trial_csvfile_name = f"{exp_name}-T-{now}.csv"
+    st.download_button(
+            "Export",
+            csv,
+            trial_csvfile_name,
+            "text/csv",
+            key='download-csv'
+            )
+    
+
+def render_explore_widget():
     st.sidebar.markdown('## Step 2. Human-in-the-loop')
 
     bo_next_btn = st.sidebar.button('Explore')
@@ -207,17 +248,10 @@ def render_next_widget():
             df[col] = df[col].astype(float)
 
         # collect unique trials types
-        trials_types = df[TRIALS_TABLE_COLUMN_TYPE].unique()
-        if len(trials_types) > 1:   # human-in-the-loop
-            Y_initial_input = df[df[TRIALS_TABLE_COLUMN_INDEX] == (st.session_state.trial_index)][Y_col_names].to_numpy()
-
-            # run trial to update surrogate model
-            st.session_state.exp.run_trial(
-                st.session_state.last_X_new, 
-                st.session_state.last_X_new_real, 
-                Y_initial_input)
-
-        else:   # initialize experiment
+        
+        if TrialState.RESTORED == st.session_state.trial_state:
+            st.session_state.trial_state = TrialState.INLOOP
+        elif TrialState.INITIALIZED == st.session_state.trial_state:
             X_initial_input = df[X_col_names].to_numpy()
             Y_initial_input = df[Y_col_names].to_numpy()
             st.session_state.exp.input_data(
@@ -229,6 +263,16 @@ def render_next_widget():
             ref_point = [10.0, 10.0]
             st.session_state.exp.set_ref_point(ref_point)
             st.session_state.exp.set_optim_specs(maximize=True)
+            st.session_state.trial_state = TrialState.INLOOP
+        elif TrialState.INLOOP == st.session_state.trial_state:
+            Y_initial_input = df[df[TRIALS_TABLE_COLUMN_INDEX] == (st.session_state.trial_index)][Y_col_names].to_numpy()
+            #FIXME: check no-NaN in the Y_initial_input
+
+            # run trial to update surrogate model
+            st.session_state.exp.run_trial(
+                st.session_state.last_X_new, 
+                st.session_state.last_X_new_real, 
+                Y_initial_input)
 
         # update trials table
         trial_no = st.session_state.trial_index + 1
@@ -284,7 +328,7 @@ def render_exp_and_params():
                 "editable": False
             } for col_name in ["Key Items", "Description"]]
         }
-        st.session_state.ag_grid = AgGrid(
+        AgGrid(
             exp_desc_tb, 
             theme="streamlit", 
             gridOptions=grid_options, 
@@ -321,7 +365,7 @@ def render_exp_and_params():
                 "editable": False
             } for col_name in ["Parameter", "Type", "Values", "Interval"]]
         }
-        st.session_state.ag_grid = AgGrid(
+        AgGrid(
             param_desc_tb, 
             theme="streamlit", 
             height=INFO_TABLE_HEIGHT,
