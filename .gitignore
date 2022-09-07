@@ -133,3 +133,6 @@ dmypy.json
 
 # Streamlit
 .streamlit/
+
+# OSX ignore file
+.DS_Store
