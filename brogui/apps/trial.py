@@ -15,6 +15,7 @@ from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
     TRIALS_TABLE_HEIGTH
 from utils.variables import OPTION_PARAMS, VariableFactory, TrialState
 from utils.plotting import pareto_front
+from fs.larkapi import LarkSheetSession
 
 def app():
     st.markdown("# Human-in-the-loop(HITL) Experiment")
@@ -31,7 +32,7 @@ def app():
     Y_vector = st.sidebar.multiselect(
         'Goal Dimensions',
         ['STY(space-time-yield)', 'E-Factor', 'Productivity (mol/h)'],
-        ['STY(space-time-yield)', 'E-Factor', 'Productivity (mol/h)'])
+        ['E-Factor', 'Productivity (mol/h)'])
     Y_dims = len(Y_vector)
     X_vector = st.sidebar.multiselect(
         'Input Dimensions', OPTION_PARAMS, OPTION_PARAMS
@@ -54,10 +55,10 @@ def app():
     )
     st.session_state.initial_sampling_select = initial_sampling_select
     
-    n_initial = st.sidebar.text_input('Initial Sampling Num', value='5')
+    n_initial = st.sidebar.text_input('Initial Sampling Num', value='4')
     st.session_state.n_initial = int(n_initial)
 
-    n_batch = st.sidebar.text_input('Batch Sampling Num', value='5')
+    n_batch = st.sidebar.text_input('Batch Sampling Num', value='2')
     st.session_state.n_batch = int(n_batch)
 
     # show initial sampled variables in a table
@@ -72,6 +73,47 @@ def app():
     exp = bo.EHVIMOOExperiment(st.session_state.exp_name)
     trial_df = None
     trial_no = None
+
+    # (optional) Restore a trial from Feishu Spreadsheet
+    st.sidebar.markdown("## Restore Trial From Feishu")
+    with st.sidebar.form("feishu_sheet_form"):
+        fs_sheet_token = st.text_input("Feishu spreadsheet token")
+        fs_sheet_index = st.number_input("Feishu spreadsheet index", min_value=1)
+        st.session_state.feishu_sheet_token = fs_sheet_token
+        st.session_state.feishu_sheet_index = fs_sheet_index - 1 # user input index starts from 0
+        st.session_state.fs = LarkSheetSession() 
+        fs_sheet_sync = st.form_submit_button("Sync")
+
+    if fs_sheet_sync:
+        remote_df, remote_sheet_id, resp_code, resp_error = st.session_state.fs.load_trials_from_remote(
+            st.session_state.feishu_sheet_token, st.session_state.feishu_sheet_index)
+        trial_no = max(remote_df["Trial Index"].astype(int).tolist())
+        # remove rows including NaN values
+        nonan_trial_df = remote_df.dropna(axis=0, how='any')
+        X_restore_input = nonan_trial_df[X_col_names].astype(float).to_numpy()
+        Y_restore_input = nonan_trial_df[Y_col_names].astype(float).to_numpy()
+
+        # restore bo.Experiment instance from file
+        exp.define_space(bo_params)
+        exp.input_data(
+            X_restore_input, Y_restore_input,
+            X_ranges = X_ranges, X_names = X_units,
+            unit_flag = True)
+
+        #FIXME init ref_point
+        ref_point = [10.0, 10.0]
+        exp.set_ref_point(ref_point)
+        exp.set_optim_specs(maximize=True)
+
+        st.session_state.exp = exp
+        st.session_state.trials = remote_df
+        st.session_state.feishu_sheet_id = remote_sheet_id
+        st.session_state.trial_state = TrialState.RESTORED
+        st.session_state.trial_index = trial_no
+        st.session_state.fixed_trials_headers = [TRIALS_TABLE_COLUMN_INDEX, TRIALS_TABLE_COLUMN_TYPE]
+        st.session_state.X_trials_headers = X_col_names
+        st.session_state.Y_trials_headers = Y_vector
+
     # (optional) Initialize from saved trials csv file
     st.sidebar.markdown("## Step 0. (Optional) Continue a Trial")
     trial_csvfile = st.sidebar.file_uploader("Restore trial from file:")
@@ -196,6 +238,7 @@ def render_trials_table():
         df = st.session_state.ag_grid['data']
         csv = df.to_csv(index=False).encode('utf-8')
         add_trial_save_button(csv)
+        add_trial_upload_button(df)
         
         st.markdown('----')
 
@@ -228,6 +271,22 @@ def add_trial_save_button(csv):
             "text/csv",
             key='download-csv'
             )
+
+def add_trial_upload_button(csv):
+    upload_to_feishu_sheet = st.button("Upload")
+    if "fs" in st.session_state and upload_to_feishu_sheet:
+        fs_session = st.session_state["fs"]
+        if "feishu_sheet_token" in st.session_state and \
+            "feishu_sheet_id" in st.session_state:
+            sheet_token = st.session_state.feishu_sheet_token
+            sheet_id = st.session_state.feishu_sheet_id
+            upload_state, resp_code, resp_error = fs_session.save_trials_to_remote(
+                sheet_token, sheet_id, csv.values.tolist())
+            if not upload_state:
+                st.error(f"failed to upload due to {resp_code}:{resp_error}")
+        else:
+            st.error("failed to get Feishu spreadsheetToken and sheetId.")
+
     
 
 def render_explore_widget():
