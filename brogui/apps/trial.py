@@ -30,8 +30,8 @@ def app():
 
     Y_vector = st.sidebar.multiselect(
         'Goal Dimensions',
-        ['STY(space-time-yield)', 'E-Factor'],
-        ['STY(space-time-yield)', 'E-Factor'])
+        ['STY(space-time-yield)', 'E-Factor', 'Productivity (mol/h)'],
+        ['STY(space-time-yield)', 'E-Factor', 'Productivity (mol/h)'])
     Y_dims = len(Y_vector)
     X_vector = st.sidebar.multiselect(
         'Input Dimensions', OPTION_PARAMS, OPTION_PARAMS
