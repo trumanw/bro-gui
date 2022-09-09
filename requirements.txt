@@ -10,3 +10,4 @@ botorch==0.6.5
 Pillow==9.2.0
 streamlit-aggrid==0.3.2
 nextorch==0.1.0
+larksuite-oapi==1.0.34

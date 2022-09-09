@@ -32,5 +32,6 @@ setup(
         'torch>=1.12.1',
         'gpytorch>=1.8.1',
         'botorch>=0.6.5',
+        'larksuite-oapi>=1.0.34'
     ],
     python_requires='>=3.8,<3.10')
