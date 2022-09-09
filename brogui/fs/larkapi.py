@@ -60,7 +60,7 @@ class LarkSheetSession:
     def save_trials_to_remote(self, sheet_token, sheet_id, data_array):
         http_method = "PUT"
         save_uri = f"https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/values"
-        sheet_range = f"{sheet_id}!A2:I"
+        sheet_range = f"{sheet_id}!A2:G{len(data_array) + 1}"
         request_body = {
             "valueRange": {
                 "range": sheet_range,
@@ -72,6 +72,22 @@ class LarkSheetSession:
         resp = req.do(self.config)
 
         if 0 == resp.code:
+            # stylish the sheet cells
+            sheet_range = f"{sheet_id}!A2:I{len(data_array) + 1}"
+            stylish_uri = f"https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/style"
+            request_body = {
+                "appendStyle": {
+                    "range": sheet_range,
+                    "style": {
+                        "hAlign": 1,
+                        "vAlign": 1,
+                        "borderType": "FULL_BORDER"
+                    }
+                }
+            }
+            req = Request(stylish_uri, http_method, self.access_token_type, request_body, request_opts=None)
+            resp = req.do(self.config)
+
             return(True, resp.code, None)
         else:
             return(False, resp.code, resp.error)
