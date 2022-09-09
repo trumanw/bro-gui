@@ -237,6 +237,11 @@ def render_trials_table():
         # get current state of the traisl table
         df = st.session_state.ag_grid['data']
         csv = df.to_csv(index=False).encode('utf-8')
+
+        # convert Object type back to float
+        for col_name in X_trials_headers+Y_trials_headers:
+            df[col_name] = df[col_name].astype(float)
+            
         add_trial_save_button(csv)
         add_trial_upload_button(df)
         
@@ -285,9 +290,7 @@ def add_trial_upload_button(csv):
             if not upload_state:
                 st.error(f"failed to upload due to {resp_code}:{resp_error}")
         else:
-            st.error("failed to get Feishu spreadsheetToken and sheetId.")
-
-    
+            st.error("failed to get Feishu spreadsheetToken and sheetId.")   
 
 def render_explore_widget():
     st.sidebar.markdown('## Step 2. Human-in-the-loop')
