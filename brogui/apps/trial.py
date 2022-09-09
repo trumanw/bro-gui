@@ -241,9 +241,10 @@ def render_trials_table():
         # convert Object type back to float
         for col_name in X_trials_headers+Y_trials_headers:
             df[col_name] = df[col_name].astype(float)
-            
+        upload_df = df[fixed_trials_headers+X_trials_headers]
+
         add_trial_save_button(csv)
-        add_trial_upload_button(df)
+        add_trial_upload_button(upload_df)
         
         st.markdown('----')
 
@@ -277,7 +278,7 @@ def add_trial_save_button(csv):
             key='download-csv'
             )
 
-def add_trial_upload_button(csv):
+def add_trial_upload_button(upload_df):
     upload_to_feishu_sheet = st.button("Upload")
     if "fs" in st.session_state and upload_to_feishu_sheet:
         fs_session = st.session_state["fs"]
@@ -286,7 +287,7 @@ def add_trial_upload_button(csv):
             sheet_token = st.session_state.feishu_sheet_token
             sheet_id = st.session_state.feishu_sheet_id
             upload_state, resp_code, resp_error = fs_session.save_trials_to_remote(
-                sheet_token, sheet_id, csv.values.tolist())
+                sheet_token, sheet_id, upload_df.values.tolist())
             if not upload_state:
                 st.error(f"failed to upload due to {resp_code}:{resp_error}")
         else:
