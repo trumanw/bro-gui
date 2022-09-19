@@ -259,8 +259,8 @@ def render_pareto_front():
             Y_col_names = st.session_state.Y_vector
 
             col_1, col_2 = st.columns([1, 1])
-            only_pareto_fig = pareto_front(Y_real_opts[:, 0], Y_real_opts[:, 1], Y_names=Y_col_names, fill=False)
-            all_samples_fig = pareto_front(st.session_state.exp.Y_real[:, 0], st.session_state.exp.Y_real[:, 1], Y_names=Y_col_names, fill=False)
+            only_pareto_fig = pareto_front(Y_real_opts[:, 0], Y_real_opts[:, 1], Y_names=Y_col_names, fill=False, is_normlize=True)
+            all_samples_fig = pareto_front(st.session_state.exp.Y_real[:, 0], st.session_state.exp.Y_real[:, 1], Y_names=Y_col_names, fill=False, is_normlize=True)
             col_1.write('Only pareto front')
             col_1.pyplot(only_pareto_fig)
             col_2.write('All sampled points')
