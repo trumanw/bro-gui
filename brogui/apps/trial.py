@@ -31,8 +31,8 @@ def app():
 
     Y_vector = st.sidebar.multiselect(
         'Goal Dimensions',
-        ['STY(space-time-yield)', 'E-Factor', 'Productivity (mol/h)'],
-        ['E-Factor', 'Productivity (mol/h)'])
+        ['STY(space-time-yield)', 'E-Factor', 'Productivity (mol/h)', 'Selectivity'],
+        ['E-Factor', 'Productivity (mol/h)', 'Selectivity'])
     Y_dims = len(Y_vector)
     X_vector = st.sidebar.multiselect(
         'Input Dimensions', OPTION_PARAMS, OPTION_PARAMS
@@ -101,7 +101,7 @@ def app():
             unit_flag = True)
 
         #FIXME init ref_point
-        ref_point = [10.0, 10.0]
+        ref_point = [10.0] * st.session_state.Y_dims
         exp.set_ref_point(ref_point)
         exp.set_optim_specs(maximize=True)
 

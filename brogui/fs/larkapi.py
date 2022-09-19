@@ -41,7 +41,7 @@ class LarkSheetSession:
 
         if 0 == resp.code:
             sheet_id = resp.data["sheets"][sheet_index]["sheetId"]
-            sheet_range = f"{sheet_id}!A:I"
+            sheet_range = f"{sheet_id}!A:J"
             data_uri = f"https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/values/{sheet_range}?valueRenderOption=FormattedValue"
 
             req = Request(data_uri, http_method, self.access_token_type, None, request_opts=None)
