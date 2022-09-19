@@ -19,6 +19,9 @@ DOE_OPTIONS = ["Full Factorial", "Latin Hypercube", "Norm Transform", "Randomize
 # Init viable parameters
 OPTION_PARAMS = ["T", "P", "GR", "LR", "C"]
 
+# Options of goals 
+OPTION_GOALS = ["STY(space-time-yield)", "E-Factor", "Productivity (mol/h)", "Selectivity"]
+
 # Trial type options
 TRIALS_TYPE_INIT = "INIT"
 TRIALS_TYPE_BO = "BO"

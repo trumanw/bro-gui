@@ -189,7 +189,7 @@ def pareto_front(
     if is_normlize:
         y1 = y1 / np.linalg.norm(y1)
         y2 = y2 / np.linalg.norm(y2)
-        
+
     # Set default axis names 
     if Y_names is None:
             Y_names = ['y1', 'y2']
@@ -198,21 +198,18 @@ def pareto_front(
     ax.scatter(y1, y2, s=60, alpha = 0.5)
     if fill:
         ax.fill_between(y1, y2, color = 'steelblue', alpha=0.3)
-    lims = [
-        np.min([y1.min(), y2.min()]),  # min of both axes
-        np.max([y1.max(), y2.max()]),  # max of both axes
-    ]
+
     # number of sections in the axis
     nsections = 5
     # now plot both limits against eachother
     if diagonal:
-        ax.plot(lims, lims, 'k--', alpha=0.75, zorder=0)
+        ax.plot([y1.min(), y1.max()], [y2.min(), y2.max()], 'k--', alpha=0.75, zorder=0)
     ax.set_xlim([y1.min(), y1.max()]) #ax.set_xlim(lims)
     ax.set_ylim([y2.min(), y2.max()]) #ax.set_ylim(lims)
-    ax.set_xticks(np.around(np.linspace(lims[0], lims[1], nsections), 2))
-    ax.set_yticks(np.around(np.linspace(lims[0], lims[1], nsections), 2))
-    ax.set_xticklabels(np.around(np.linspace(lims[0], lims[1], nsections), 2))
-    ax.set_yticklabels(np.around(np.linspace(lims[0], lims[1], nsections), 2))
+    ax.set_xticks(np.around(np.linspace(y1.min(), y1.max(), nsections), 2))
+    ax.set_yticks(np.around(np.linspace(y2.min(), y2.max(), nsections), 2))
+    ax.set_xticklabels(np.around(np.linspace(y1.min(), y1.max(), nsections), 2))
+    ax.set_yticklabels(np.around(np.linspace(y2.min(), y2.max(), nsections), 2))
     ax.set_xlabel(Y_names[0])
     ax.set_ylabel(Y_names[1])
 

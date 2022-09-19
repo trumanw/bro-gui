@@ -12,7 +12,7 @@ from nextorch.utils import encode_to_real_ParameterSpace
 from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
     TRIALS_TABLE_COLUMN_TYPE, TRIALS_TABLE_COLUMN_INDEX,\
     TRIALS_TYPE_INIT, TRIALS_TYPE_BO, INFO_TABLE_HEIGHT,\
-    TRIALS_TABLE_HEIGTH
+    TRIALS_TABLE_HEIGTH, OPTION_GOALS
 from utils.variables import OPTION_PARAMS, VariableFactory, TrialState
 from utils.plotting import pareto_front
 from fs.larkapi import LarkSheetSession
@@ -30,8 +30,7 @@ def app():
     st.session_state.exp_desc = exp_desc
 
     Y_vector = st.sidebar.multiselect(
-        'Goal Dimensions',
-        ['STY(space-time-yield)', 'E-Factor', 'Productivity (mol/h)', 'Selectivity'],
+        'Goal Dimensions', OPTION_GOALS,
         ['E-Factor', 'Productivity (mol/h)', 'Selectivity'])
     Y_dims = len(Y_vector)
     X_vector = st.sidebar.multiselect(
@@ -251,16 +250,28 @@ def render_trials_table():
 def render_pareto_front():
     st.sidebar.markdown('## Step 3. Visualize Pareto Front')
 
+    plot_axis_vector = st.sidebar.multiselect(
+        'Plotting Dimensions', OPTION_GOALS,
+        ['E-Factor', 'Productivity (mol/h)'])
+
     bo_plot_btn = st.sidebar.button('Plot')
     if bo_plot_btn:
         if 'exp' in st.session_state and hasattr(st.session_state.exp, 'Y_real'):
             st.markdown('### Visualize Paretor Front')
             Y_real_opts, X_real_opts = st.session_state.exp.get_optim()
             Y_col_names = st.session_state.Y_vector
+            Y_col_sele = plot_axis_vector[:2]
+            Y_col_sele_index = [Y_col_names.index(item_col) for item_col in Y_col_sele]
 
             col_1, col_2 = st.columns([1, 1])
-            only_pareto_fig = pareto_front(Y_real_opts[:, 0], Y_real_opts[:, 1], Y_names=Y_col_names, fill=False, is_normlize=True)
-            all_samples_fig = pareto_front(st.session_state.exp.Y_real[:, 0], st.session_state.exp.Y_real[:, 1], Y_names=Y_col_names, fill=False, is_normlize=True)
+            only_pareto_fig = pareto_front(
+                Y_real_opts[:, Y_col_sele_index[0]], 
+                Y_real_opts[:, Y_col_sele_index[1]], 
+                Y_names=Y_col_sele, fill=False)
+            all_samples_fig = pareto_front(
+                st.session_state.exp.Y_real[:, Y_col_sele_index[0]], 
+                st.session_state.exp.Y_real[:, Y_col_sele_index[1]], 
+                Y_names=Y_col_sele, fill=False)
             col_1.write('Only pareto front')
             col_1.pyplot(only_pareto_fig)
             col_2.write('All sampled points')
