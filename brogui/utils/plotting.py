@@ -157,7 +157,8 @@ def pareto_front(
     diagonal: Optional[bool] = True,
     save_fig: Optional[bool] = False,
     save_path: Optional[str] = None, 
-    i_iter: Optional[Union[str, int]] = ''):
+    i_iter: Optional[Union[str, int]] = '',
+    is_normlize=False):
     """Plot parity plot comparing the ground true 
     objective function values against predicted model mean
 
@@ -185,6 +186,10 @@ def pareto_front(
     """
     y1 = np.squeeze(tensor_to_np(y1))
     y2 = np.squeeze(tensor_to_np(y2))
+    if is_normlize:
+        y1 = y1 / np.linalg.norm(y1)
+        y2 = y2 / np.linalg.norm(y2)
+        
     # Set default axis names 
     if Y_names is None:
             Y_names = ['y1', 'y2']
