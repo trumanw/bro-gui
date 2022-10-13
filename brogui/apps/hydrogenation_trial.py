@@ -3,7 +3,6 @@ from datetime import datetime
 import streamlit as st
 import pandas as pd
 import numpy as np
-from PIL import Image
 from st_aggrid import AgGrid
 from nextorch import bo, doe, io
 from nextorch.parameter import ParameterSpace
@@ -13,12 +12,12 @@ from utils.variables import AF_OPTIONS, DOE_OPTIONS,\
     TRIALS_TABLE_COLUMN_TYPE, TRIALS_TABLE_COLUMN_INDEX,\
     TRIALS_TYPE_INIT, TRIALS_TYPE_BO, INFO_TABLE_HEIGHT,\
     TRIALS_TABLE_HEIGTH, OPTION_GOALS
-from utils.variables import OPTION_PARAMS, VariableFactory, TrialState
+from utils.variables import OPTION_HYDROGENATION_PARAMS, VariableFactory, TrialState
 from utils.plotting import pareto_front
 from fs.larkapi import LarkSheetSession
 
 def app():
-    st.markdown("# Human-in-the-loop(HITL) Experiment")
+    st.markdown("# Human-in-the-loop(HITL) THF Hydrogenation")
     
     st.sidebar.markdown("## Setup Experiment")
     
@@ -34,7 +33,9 @@ def app():
         ['E-Factor', 'Productivity (mol/h)', 'Selectivity'])
     Y_dims = len(Y_vector)
     X_vector = st.sidebar.multiselect(
-        'Input Dimensions', OPTION_PARAMS, OPTION_PARAMS
+        'Input Dimensions', 
+        OPTION_HYDROGENATION_PARAMS, 
+        OPTION_HYDROGENATION_PARAMS
     )
     X_dims = len(X_vector)
     st.session_state.Y_vector = Y_vector
@@ -42,11 +43,11 @@ def app():
     st.session_state.Y_dims = Y_dims
     st.session_state.X_dims = X_dims
 
-    acqucision_function_select = st.sidebar.selectbox(
-        'Acqucision Function', (AF_OPTIONS),
+    acquisition_function_select = st.sidebar.selectbox(
+        'Acquisition Function', (AF_OPTIONS),
         index=6
     )
-    st.session_state.acqucision_function_select = acqucision_function_select
+    st.session_state.acquisition_function_select = acquisition_function_select
 
     initial_sampling_select = st.sidebar.selectbox(
         'Initial Sampling', (DOE_OPTIONS), 
@@ -78,14 +79,18 @@ def app():
     with st.sidebar.form("feishu_sheet_form"):
         fs_sheet_token = st.text_input("Feishu spreadsheet token")
         fs_sheet_index = st.number_input("Feishu spreadsheet index", min_value=1)
+        fs_sheet_col_range = st.text_input("Feishu spreadsheet column range", value="A:J")
         st.session_state.feishu_sheet_token = fs_sheet_token
         st.session_state.feishu_sheet_index = fs_sheet_index - 1 # user input index starts from 0
+        st.session_state.feishu_sheet_col_range = fs_sheet_col_range
         st.session_state.fs = LarkSheetSession() 
         fs_sheet_sync = st.form_submit_button("Sync")
 
     if fs_sheet_sync:
         remote_df, remote_sheet_id, resp_code, resp_error = st.session_state.fs.load_trials_from_remote(
-            st.session_state.feishu_sheet_token, st.session_state.feishu_sheet_index)
+            st.session_state.feishu_sheet_token, 
+            st.session_state.feishu_sheet_index,
+            sheet_col_range = st.session_state.feishu_sheet_col_range)
         trial_no = max(remote_df["Trial Index"].astype(int).tolist())
         # remove rows including NaN values
         nonan_trial_df = remote_df.dropna(axis=0, how='any')
@@ -298,7 +303,9 @@ def add_trial_upload_button(upload_df):
             sheet_token = st.session_state.feishu_sheet_token
             sheet_id = st.session_state.feishu_sheet_id
             upload_state, resp_code, resp_error = fs_session.save_trials_to_remote(
-                sheet_token, sheet_id, upload_df.values.tolist())
+                sheet_token, sheet_id, 
+                upload_df.values.tolist(),
+                sheet_col_range=st.session_state.feishu_sheet_col_range)
             if not upload_state:
                 st.error(f"failed to upload due to {resp_code}:{resp_error}")
         else:
@@ -380,7 +387,7 @@ def render_exp_and_params():
         st.session_state.exp_desc, 
         str(st.session_state.Y_dims), 
         str(st.session_state.X_dims), 
-        st.session_state.acqucision_function_select, 
+        st.session_state.acquisition_function_select, 
         st.session_state.initial_sampling_select, 
         str(st.session_state.n_initial),
         str(st.session_state.n_batch)]

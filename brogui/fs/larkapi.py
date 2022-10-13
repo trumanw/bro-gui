@@ -32,7 +32,7 @@ class LarkSheetSession:
     def config(self):
         return self._config
 
-    def load_trials_from_remote(self, sheet_token, sheet_index):
+    def load_trials_from_remote(self, sheet_token, sheet_index, sheet_col_range="A:J"):
         http_method = "GET"
         meta_uri =  f"https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/metainfo"
 
@@ -41,7 +41,7 @@ class LarkSheetSession:
 
         if 0 == resp.code:
             sheet_id = resp.data["sheets"][sheet_index]["sheetId"]
-            sheet_range = f"{sheet_id}!A:J"
+            sheet_range = f"{sheet_id}!{sheet_col_range}"
             data_uri = f"https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/values/{sheet_range}?valueRenderOption=FormattedValue"
 
             req = Request(data_uri, http_method, self.access_token_type, None, request_opts=None)
@@ -49,7 +49,10 @@ class LarkSheetSession:
 
             if 0 == resp.code:
                 data_cols = resp.data['valueRange']['values'][0]
-                data_array = np.array(resp.data['valueRange']['values'][1:])
+                if 1 == len(resp.data['valueRange']['values']):
+                    data_array = None
+                else:
+                    data_array = np.array(resp.data['valueRange']['values'][1:])
                 df = pd.DataFrame(data_array, columns=data_cols)
                 return(df, sheet_id, resp.code, None)
             else:
@@ -57,10 +60,11 @@ class LarkSheetSession:
         else:
             return(None, None, resp.code, resp.error)
 
-    def save_trials_to_remote(self, sheet_token, sheet_id, data_array):
+    def save_trials_to_remote(self, sheet_token, sheet_id, data_array, sheet_col_range="A:J"):
         http_method = "PUT"
         save_uri = f"https://open.feishu.cn/open-apis/sheets/v2/spreadsheets/{sheet_token}/values"
-        sheet_range = f"{sheet_id}!A2:G{len(data_array) + 1}"
+        modified_sheet_range = sheet_col_range.split(":")[0]+"2"+":"+sheet_col_range.split(":")[1]
+        sheet_range = f"{sheet_id}!{modified_sheet_range}{len(data_array) + 1}"
         request_body = {
             "valueRange": {
                 "range": sheet_range,
