@@ -10,17 +10,18 @@ class ParameterType(Enum):
     categorical="categorical"
     ordinal="ordinal"
 
-# Init viable acqucision functions
+# Init viable acquisition functions
 AF_OPTIONS = ["EI", "PI", "UCB", "qEI", "qPI", "qUCB", "qEHVI"]
 
 # Init viable sampling strategies
 DOE_OPTIONS = ["Full Factorial", "Latin Hypercube", "Norm Transform", "Randomized Design"]
 
 # Init viable parameters
-OPTION_PARAMS = ["T", "P", "GR", "LR", "C"]
+OPTION_HYDROGENATION_PARAMS = ["T", "P", "GR", "LR", "C"]
+OPTION_OXIDATION_PARAMS = ["T", "P", "GR", "LR", "C", "P1", "P2"]
 
 # Options of goals 
-OPTION_GOALS = ["STY(space-time-yield)", "E-Factor", "Productivity (mol/h)", "Selectivity"]
+OPTION_GOALS = ["STY(space-time-yield)", "E-Factor", "Productivity (mol/h)", "Selectivity", "Purity"]
 
 # Trial type options
 TRIALS_TYPE_INIT = "INIT"
@@ -45,7 +46,13 @@ def VariableFactory(class_name):
 
     """Factory Method"""
     parameters = {
-        "T": T, "P": P, "GR": GR, "LR": LR, "C": C
+        "T": T, 
+        "P": P, 
+        "GR": GR, 
+        "LR": LR, 
+        "C": C,
+        "P1": P1,
+        "P2": P2
     }
 
     return parameters[class_name]()
@@ -144,6 +151,39 @@ class C(Variable):
         self.parameter_range = [2.5, 10]
         self.interval = 2.5
 
+    def parameter(self):
+        return parameter.Parameter(
+            x_type = self.parameter_type,
+            x_range = self.parameter_range,
+            interval = self.interval
+        )
+
+# Parameters specific for HMF+NaClO oxidation
+class P1(Variable):
+    def __init__(self):
+        self.symbol = "P1"
+        self.parameter_name = "Extend Parameter 1"
+        self.parameter_type = ParameterType.ordinal.value
+        self.unit = "NaClO"
+        self.parameter_range = [3.0, 4.5]
+        self.interval = 0.5
+    
+    def parameter(self):
+        return parameter.Parameter(
+            x_type = self.parameter_type,
+            x_range = self.parameter_range,
+            interval = self.interval
+        )
+    
+class P2(Variable):
+    def __init__(self):
+        self.symbol = "P2"
+        self.parameter_name = "Extend Parameter 2"
+        self.parameter_type = ParameterType.ordinal.value
+        self.unit = "Alkaline"
+        self.parameter_range = [0.1, 0.2]
+        self.interval = 0.02
+    
     def parameter(self):
         return parameter.Parameter(
             x_type = self.parameter_type,
