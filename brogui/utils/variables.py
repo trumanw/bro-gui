@@ -18,7 +18,7 @@ DOE_OPTIONS = ["Full Factorial", "Latin Hypercube", "Norm Transform", "Randomize
 
 # Init viable parameters
 OPTION_HYDROGENATION_PARAMS = ["T", "P", "GR", "LR", "C"]
-OPTION_OXIDATION_PARAMS = ["T", "P", "GR", "HMF_LR", "HMF_C", "P1", "P2"]
+OPTION_OXIDATION_PARAMS = ["HMF_T", "P", "GR", "HMF_LR", "HMF_C", "P1", "P2"]
 
 # Options of goals 
 OPTION_GOALS = ["STY(space-time-yield)", "E-Factor", "Productivity (mol/h)", "Selectivity", "Purity"]
@@ -54,7 +54,8 @@ def VariableFactory(class_name):
         "P1": P1,
         "P2": P2,
         "HMF_LR": HMF_LR,
-        "HMF_C": HMF_C
+        "HMF_C": HMF_C,
+        "HMF_T": HMF_T
     }
 
     return parameters[class_name]()
@@ -185,6 +186,22 @@ class HMF_C(Variable):
         self.unit = "wt%"
         self.parameter_range = [4, 20]
         self.interval = 4
+    
+    def parameter(self):
+        return parameter.Parameter(
+            x_type = self.parameter_type,
+            x_range = self.parameter_range,
+            interval = self.interval
+        )
+
+class HMF_T(Variable):
+    def __init__(self):
+        self.symbol = "T"
+        self.parameter_name = "Temperature"
+        self.parameter_type = ParameterType.ordinal.value
+        self.unit = "C"
+        self.parameter_range = [25, 50]
+        self.interval = 5
     
     def parameter(self):
         return parameter.Parameter(

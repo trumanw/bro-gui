@@ -34,7 +34,7 @@ def app():
     Y_dims = len(Y_vector)
     X_vector = st.sidebar.multiselect(
         'Input Dimensions', OPTION_OXIDATION_PARAMS, 
-        ['T', 'HMF_C', 'HMF_LR', 'P1', 'P2']
+        ['HMF_T', 'HMF_C', 'HMF_LR', 'P1', 'P2']
     )
     X_dims = len(X_vector)
     st.session_state.Y_vector = Y_vector
