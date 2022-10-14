@@ -167,8 +167,8 @@ class HMF_LR(Variable):
         self.parameter_name = "Liquid FLow Rate"
         self.parameter_type = ParameterType.ordinal.value
         self.unit = "mL/min"
-        self.parameter_range = [4, 20]
-        self.interval = 4
+        self.parameter_range = [5, 10]
+        self.interval = 1
 
     def parameter(self):
         return parameter.Parameter(
@@ -183,8 +183,8 @@ class HMF_C(Variable):
         self.parameter_name = "Concentration"
         self.parameter_type = ParameterType.ordinal.value
         self.unit = "wt%"
-        self.parameter_range = [5, 10]
-        self.interval = 1
+        self.parameter_range = [4, 20]
+        self.interval = 4
     
     def parameter(self):
         return parameter.Parameter(

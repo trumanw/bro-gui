@@ -78,7 +78,7 @@ def app():
     with st.sidebar.form("feishu_sheet_form"):
         fs_sheet_token = st.text_input("Feishu spreadsheet token")
         fs_sheet_index = st.number_input("Feishu spreadsheet index", min_value=1)
-        fs_sheet_col_range = st.text_input("Feishu spreadsheet column range", value="A:K")
+        fs_sheet_col_range = st.text_input("Feishu spreadsheet column range", value="A:J")
         st.session_state.feishu_sheet_token = fs_sheet_token
         st.session_state.feishu_sheet_index = fs_sheet_index - 1 # user input index starts from 0
         st.session_state.feishu_sheet_col_range = fs_sheet_col_range
