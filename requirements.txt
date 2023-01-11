@@ -13,3 +13,4 @@ nextorch==0.1.0
 larksuite-oapi==1.0.34
 dgl==0.9
 dgllife==0.3.1
+ipython==8.4.0
