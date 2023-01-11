@@ -1,0 +1,5 @@
+include brogui/data/models/*.pt
+include brogui/data/models/REPODATA/*.pkl
+include brogui/data/models/REPODATA/*.npz
+include brogui/data/models/REPODATA/*.csv
+include brogui/data/models/REPODATA/*.pt

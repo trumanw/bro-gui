@@ -15,7 +15,8 @@ st.session_state.logo = img
 st.set_page_config(page_title="bro-gui", page_icon=img, layout="wide")
 app = MultiApp()
 
-from apps import home, hydrogenation_trial, oxidation_trial
+from apps import home, hydrogenation_trial, oxidation_trial, surfactant_predictor
+app.add_app("Detergent Property Predictor", surfactant_predictor.app)
 app.add_app("THF Hydrogenation Trial", hydrogenation_trial.app)
 app.add_app("HMF Oxidation Trial", oxidation_trial.app)
 app.add_app("Home Page", home.app)
