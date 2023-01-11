@@ -11,3 +11,5 @@ Pillow==9.2.0
 streamlit-aggrid==0.3.2
 nextorch==0.1.0
 larksuite-oapi==1.0.34
+dgl==0.9
+dgllife==0.3.1
